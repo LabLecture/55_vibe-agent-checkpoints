@@ -2,3 +2,5 @@
 node_modules
 __pycache__
 *.pyc
+backend/vector_store/
+backend/.hf_cache/

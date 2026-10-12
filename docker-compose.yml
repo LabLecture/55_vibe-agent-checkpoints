@@ -8,6 +8,8 @@ services:
     # 사용할 LLM 모델 (확정 모델. 막히면 CLAUDE.md 의 예비 모델로 바꾼다)
     environment:
       LLM_MODEL: google/gemma-4-26b-a4b-it
+      # 임베딩 모델 캐시를 볼륨(작업 폴더)에 두어 실행할 때마다 다시 받지 않게 한다
+      HF_HOME: /app/.hf_cache
     # 서버 폴더를 상자와 이어서 비교 스크립트의 결과(out/)가 작업 폴더에 남게 한다
     volumes:
       - ./backend:/app
