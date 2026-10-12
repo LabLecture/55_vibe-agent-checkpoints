@@ -1,4 +1,7 @@
+import asyncio
+import logging
 import os
+from functools import lru_cache
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,7 +12,8 @@ from pydantic import BaseModel
 
 BASE_URL = "https://openrouter.ai/api/v1"
 TIMEOUT_SEC = 60  # 모델 호출 제한 시간
-DETAIL_MAX_LEN = 200  # 오류 한 줄의 최대 길이
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -21,21 +25,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 역할 한 줄과 질문 칸만 둔 프롬프트 템플릿
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", "너는 새싹배움 학습지 고객센터 상담원이다"),
-        ("human", "{question}"),
-    ]
-)
-
 
 class ChatRequest(BaseModel):
     question: str
 
 
-def build_chain():
-    """프롬프트 -> 모델 -> 출력 파서를 | 로 이은 체인을 만든다."""
+@lru_cache
+def get_chain():
+    """프롬프트 -> 모델 -> 출력 파서 체인을 처음 요청 때 한 번 만든다."""
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", "너는 새싹배움 학습지 고객센터 상담원이다"),
+            ("human", "{question}"),
+        ]
+    )
     # 모델 이름과 키는 환경 변수로만 읽는다. 자동 재시도는 끈다 (max_retries=0)
     llm = ChatOpenAI(
         model=os.environ["LLM_MODEL"],
@@ -48,13 +51,14 @@ def build_chain():
 
 
 @app.post("/chat")
-def chat(req: ChatRequest):
+async def chat(req: ChatRequest):
     try:
-        # 환경 변수가 빠져도 서버가 죽지 않고 502 로 알리도록 여기서 체인을 만든다
-        answer = build_chain().invoke({"question": req.question})
+        # 단계별 제한과 별개로 전체 60초를 넘기면 끊는다
+        answer = await asyncio.wait_for(
+            get_chain().ainvoke({"question": req.question}), TIMEOUT_SEC
+        )
     except Exception as e:
-        # 시간 초과 · 모델 오류 · 환경 변수 누락 모두 오류 한 줄로 돌려준다
-        detail = f"{type(e).__name__}: {e}"
-        detail = " ".join(detail.split())[:DETAIL_MAX_LEN]
-        raise HTTPException(status_code=502, detail=detail)
+        # 자세한 내용은 서버 로그에만 남기고, 응답에는 예외 이름만 담는다
+        logger.exception("LLM 호출 실패")
+        raise HTTPException(status_code=502, detail=type(e).__name__)
     return {"answer": answer}
