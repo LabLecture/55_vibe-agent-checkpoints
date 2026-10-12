@@ -10,8 +10,8 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # ---- 설정: 값은 여기 한 곳에서만 바꾼다 ----
-CHUNK_SIZE = 500  # 조각 크기(글자 수)
-CHUNK_OVERLAP = 20  # 이웃 조각과 겹치는 글자 수
+CHUNK_SIZE = 500  # 조각 크기(글자 수). 비교 표(200/500/1000)를 근거로 500 확정
+CHUNK_OVERLAP = 50  # 이웃 조각과 겹치는 글자 수 (크기의 10%)
 MODEL_NAME = "intfloat/multilingual-e5-small"
 DOCS_DIR = Path("/app/docs")
 STORE_DIR = Path("/app/vector_store")

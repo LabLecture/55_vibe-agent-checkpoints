@@ -2,3 +2,4 @@
 - 실행은 Docker
 - 비밀키는 .env — 열지도 읽지도 않는다
 - LLM 모델은 google/gemma-4-26b-a4b-it · 막히면 nvidia/nemotron-3-super-120b-a12b:free
+- 청크 크기는 500 (겹침 50)
