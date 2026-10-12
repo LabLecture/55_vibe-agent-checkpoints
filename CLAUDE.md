@@ -1,0 +1,3 @@
+- LLM은 OpenRouter
+- 실행은 Docker
+- 비밀키는 .env — 열지도 읽지도 않는다

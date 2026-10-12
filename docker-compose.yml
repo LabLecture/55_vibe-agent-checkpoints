@@ -1,0 +1,14 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8001:8001"
+    # 비밀키는 .env 에서 환경변수로만 주입한다 (코드에서 직접 읽지 않음)
+    env_file: .env
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
