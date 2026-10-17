@@ -9,3 +9,6 @@ langchain-chroma
 langchain-huggingface
 sentence-transformers
 pypdf
+langgraph
+langchain-experimental
+beautifulsoup4
