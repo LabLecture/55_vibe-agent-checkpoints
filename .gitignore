@@ -6,3 +6,4 @@ backend/vector_store/
 backend/vector_store_*/
 backend/vector_store_*/
 backend/.hf_cache/
+.claude/settings.local.json
