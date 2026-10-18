@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "youtube": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "compose",
+        "run",
+        "--rm",
+        "-T",
+        "backend",
+        "python",
+        "youtube_mcp_server.py"
+      ],
+      "env": {}
+    }
+  }
+}
