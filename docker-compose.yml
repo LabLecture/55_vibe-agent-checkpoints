@@ -20,3 +20,21 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+
+  db:
+    image: postgres:16-alpine
+    # 계정 값은 .env 의 같은 이름 값을 받는다 (파일에 글자로 적지 않음)
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    # 내 컴퓨터에서만 닿게 127.0.0.1 로 묶는다
+    ports:
+      - "127.0.0.1:5435:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # 처음 뜰 때 돌릴 SQL 을 두는 폴더 (읽기 전용)
+      - ./db:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  pgdata:
