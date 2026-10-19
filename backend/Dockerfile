@@ -10,6 +10,8 @@ RUN pip install --no-cache-dir langchain-tavily
 RUN pip install --no-cache-dir "mcp<2" youtube-transcript-api
 # 2-8 용 부품: A2A 서버·클라이언트 a2a-sdk (1.x 는 A2AStarletteApplication·A2AClient 가 없어져 1 아래로 묶음, 위 층 캐시를 살리려 따로 설치)
 RUN pip install --no-cache-dir "a2a-sdk<1"
+# 3-1 용 부품: 기록 장치 langfuse (6.x 는 아직 없는 판이라 이름이 바뀔 수 있어 6 아래로 묶음, 위 층 캐시를 살리려 따로 설치)
+RUN pip install --no-cache-dir "langfuse<6"
 COPY main.py .
 EXPOSE 8001
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
