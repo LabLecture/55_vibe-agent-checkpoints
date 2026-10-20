@@ -3,6 +3,7 @@
 python run_graph.py     턴 1 만 넣어 표를 새로 쓴다
 python run_graph.py 2   턴 1 고객 말 · 턴 1 기대 답 · 턴 2 고객 말을 넣어 표 끝에 줄을 더한다
 """
+import io
 import os
 import sys
 import time
@@ -42,12 +43,24 @@ def left_text(update: dict | None) -> str:
     return ", ".join(f"{k}={v}" for k, v in update.items())
 
 
-def run(messages: list) -> tuple[list, str | None, str, float]:
-    # 그래프를 한 걸음씩 돌려 (걸음 목록, 계획, 상태, 걸린 초) 를 돌려준다
+class Tee(io.StringIO):
+    # 화면에도 그대로 찍고, 찍힌 글은 모아 둔다
+    def write(self, s):
+        sys.__stdout__.write(s)
+        return super().write(s)
+
+    def flush(self):
+        sys.__stdout__.flush()
+
+
+def run(messages: list) -> tuple[list, str | None, str, float, list[str]]:
+    # 그래프를 한 걸음씩 돌려 (걸음 목록, 계획, 상태, 걸린 초, 도구 시작 줄) 을 돌려준다
     graph = build_graph()
     steps = []  # (칸 이름, 남긴 글, 걸린 초)
     plan = None
     status = "완료"
+    tee = Tee()
+    sys.stdout = tee  # 일꾼 안 도구 칸이 다른 스레드에서 찍어도 잡히게 전역으로 바꾼다
     start = last = time.monotonic()
     try:
         for chunk in graph.stream(
@@ -66,9 +79,12 @@ def run(messages: list) -> tuple[list, str | None, str, float]:
         status = f"한도에 걸림: {e!r}"
     except Exception as e:
         status = f"오류: {e!r}"
+    finally:
+        sys.stdout = sys.__stdout__
     total = time.monotonic() - start
     print(f"상태: {status} · 걸린 초: {total:.1f}")
-    return steps, plan, status, total
+    tool_starts = [line for line in tee.getvalue().splitlines() if "_tool_start" in line]
+    return steps, plan, status, total, tool_starts
 
 
 def step_rows(steps: list, status: str) -> list[str]:
@@ -86,6 +102,12 @@ def step_rows(steps: list, status: str) -> list[str]:
     return lines
 
 
+def tool_lines(tool_starts: list[str]) -> list[str]:
+    lines = ["", "## 도구 시작 줄 (원문)", ""]
+    lines += ["```", *tool_starts, "```"] if tool_starts else ["(도구 시작 줄 없음)"]
+    return lines
+
+
 def plan_lines(plan: str | None) -> list[str]:
     lines = ["", "## planner 계획 JSON (원문)", ""]
     lines += ["```json", plan, "```"] if plan else ["(planner 가 계획을 남기지 않음)"]
@@ -94,7 +116,7 @@ def plan_lines(plan: str | None) -> list[str]:
 
 def main_turn_one() -> None:
     question, _ = turn(1)
-    steps, plan, status, total = run([HumanMessage(question)])
+    steps, plan, status, total, tool_starts = run([HumanMessage(question)])
     lines = [
         "# 학습지 챗봇 그래프 한 걸음씩 (대본 턴 1)",
         "",
@@ -103,7 +125,7 @@ def main_turn_one() -> None:
         f"고객 말: {question}",
         "",
     ]
-    lines += step_rows(steps, status) + plan_lines(plan)
+    lines += step_rows(steps, status) + tool_lines(tool_starts) + plan_lines(plan)
     # 일꾼 칸이 남긴 마지막 답 원문
     answers = [text for node, text, _ in steps if node in TEAM_MEMBERS]
     lines += ["", "## 일꾼이 남긴 답 (원문)", ""]
@@ -116,7 +138,7 @@ def main_turn_one() -> None:
 def main_turn_two() -> None:
     q1, a1 = turn(1)
     q2, expected = turn(2)
-    steps, plan, status, total = run([HumanMessage(q1), AIMessage(a1), HumanMessage(q2)])
+    steps, plan, status, total, tool_starts = run([HumanMessage(q1), AIMessage(a1), HumanMessage(q2)])
     # 일꾼 칸이 남긴 마지막 답 원문
     answers = [text for node, text, _ in steps if node in TEAM_MEMBERS]
     lines = [
@@ -132,7 +154,7 @@ def main_turn_two() -> None:
         f"| 3 | 고객 (턴 2) | {cell(q2)} |",
         "",
     ]
-    lines += step_rows(steps, status) + plan_lines(plan)
+    lines += step_rows(steps, status) + tool_lines(tool_starts) + plan_lines(plan)
     lines += ["", "## 일꾼이 남긴 답 (원문)", ""]
     lines += [answers[-1]] if answers else ["(일꾼이 답을 남기지 않음)"]
     lines += [
@@ -143,8 +165,9 @@ def main_turn_two() -> None:
         "",
         "| 확인 | 결과 |",
         "|---|---|",
-        "| 대본 턴 2 기대 답과 같은가 |  |",
-        "| 일꾼 답의 수업 이름이 섹션 3-3(db/init.sql) 표에 있는가 |  |",
+        "| 턴 2 에 도구 시작 줄이 있는가 |  |",
+        "| 턴 2 답의 수업 이름이 섹션 3-3(db/init.sql) 표와 같은가 |  |",
+        "| 턴 2 답이 대본 턴 2 처럼 번호로 셋을 늘어놓는가 |  |",
     ]
     # 턴 1 줄은 그대로 두고 끝에 더한다
     with OUT_PATH.open("a", encoding="utf-8") as f:
