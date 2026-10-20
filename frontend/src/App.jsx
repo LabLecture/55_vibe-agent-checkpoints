@@ -13,6 +13,13 @@ import {
 // 브라우저가 직접 호출하므로 컨테이너 이름이 아닌 localhost 를 쓴다
 const API_URL = "http://localhost:8001/chat";
 
+// 말풍선을 서버가 받는 {role, content} 로 바꾼다 (내 말 = user, 챗봇 말 = assistant)
+const toApiMessages = (bubbles) =>
+  bubbles.map((m) => ({
+    role: m.direction === "outgoing" ? "user" : "assistant",
+    content: m.content,
+  }));
+
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -29,8 +36,10 @@ export default function App() {
     add("outgoing", question, "나"); // [A] 내 말을 먼저 더한다
     setLoading(true);
     try {
-      const res = await axios.post(API_URL, { question }); // [B]
-      add("incoming", res.data.answer, "챗봇"); // [C]
+      // messages 는 [A] 전 상태라 이번 말은 끝에 한 번만 붙는다
+      const history = [...toApiMessages(messages), { role: "user", content: question }];
+      const res = await axios.post(API_URL, { messages: history }); // [B]
+      add("incoming", res.data.response, "챗봇"); // [C]
     } catch (e) {
       add("incoming", `서버 호출 실패: ${e.message}`, "챗봇");
     } finally {
