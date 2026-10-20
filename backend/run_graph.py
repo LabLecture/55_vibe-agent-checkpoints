@@ -51,7 +51,7 @@ def run(messages: list) -> tuple[list, str | None, str, float]:
     start = last = time.monotonic()
     try:
         for chunk in graph.stream(
-            {"messages": messages},
+            {"messages": messages, "TEAM_MEMBERS": TEAM_MEMBERS},
             {"recursion_limit": RECURSION_LIMIT},
             stream_mode="updates",
         ):
@@ -104,6 +104,10 @@ def main_turn_one() -> None:
         "",
     ]
     lines += step_rows(steps, status) + plan_lines(plan)
+    # 일꾼 칸이 남긴 마지막 답 원문
+    answers = [text for node, text, _ in steps if node in TEAM_MEMBERS]
+    lines += ["", "## 일꾼이 남긴 답 (원문)", ""]
+    lines += [answers[-1]] if answers else ["(일꾼이 답을 남기지 않음)"]
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"표 저장: {OUT_PATH}")
