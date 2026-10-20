@@ -12,6 +12,8 @@ RUN pip install --no-cache-dir "mcp<2" youtube-transcript-api
 RUN pip install --no-cache-dir "a2a-sdk<1"
 # 3-1 용 부품: 기록 장치 langfuse (6.x 는 아직 없는 판이라 이름이 바뀔 수 있어 6 아래로 묶음, 위 층 캐시를 살리려 따로 설치)
 RUN pip install --no-cache-dir "langfuse<6"
+# 3-6 용 부품: PostgreSQL 연결 psycopg (3.x, 바이너리 판이라 libpq 따로 설치 없음, 위 층 캐시를 살리려 따로 설치)
+RUN pip install --no-cache-dir "psycopg[binary]"
 COPY main.py .
 EXPOSE 8001
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
