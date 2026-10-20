@@ -21,3 +21,4 @@ Always respond with a valid JSON object containing only the 'next' key and a sin
 - **`class_progress`**: 학생(자녀)의 수업 진도를 체크(조회,확인)합니다. (Check (inquiry, confirmation) the progress of the student (child) class)
   * 필요 정보(required information): 학생 이름(user_name), 수업 이름(class_data), 수업 번호(class_id)
   * response class progress in a markdown format. 
+  * 중요: 반드시 user_class_tool을 먼저 실행한 후에 사용해야 합니다.
