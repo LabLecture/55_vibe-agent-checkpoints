@@ -2,6 +2,7 @@
 
 python run_graph.py     턴 1 만 넣어 표를 새로 쓴다
 python run_graph.py 2   턴 1 고객 말 · 턴 1 기대 답 · 턴 2 고객 말을 넣어 표 끝에 줄을 더한다
+python run_graph.py 3   턴 1 · 2 고객 말 · 기대 답과 턴 3 고객 말을 넣어 표 끝에 줄을 더한다
 """
 import io
 import os
@@ -175,5 +176,53 @@ def main_turn_two() -> None:
     print(f"표에 더함: {OUT_PATH}")
 
 
+def main_turn_three() -> None:
+    q1, a1 = turn(1)
+    q2, a2 = turn(2)
+    q3, expected = turn(3)
+    steps, plan, status, total, tool_starts = run(
+        [HumanMessage(q1), AIMessage(a1), HumanMessage(q2), AIMessage(a2), HumanMessage(q3)]
+    )
+    # 일꾼 칸이 남긴 마지막 답 원문
+    answers = [text for node, text, _ in steps if node in TEAM_MEMBERS]
+    lines = [
+        "",
+        "# 대본 턴 3 (앞 말과 함께)",
+        "",
+        f"모델: {os.environ['LLM_MODEL']} · 걸음 한도: {RECURSION_LIMIT} · 걸린 초: {total:.1f} · 상태: {cell(status)}",
+        "",
+        "| 넣은 말 | 역할 | 글 |",
+        "|---|---|---|",
+        f"| 1 | 고객 (턴 1) | {cell(q1)} |",
+        f"| 2 | 챗봇 기대 답 (턴 1) | {cell(a1)} |",
+        f"| 3 | 고객 (턴 2) | {cell(q2)} |",
+        f"| 4 | 챗봇 기대 답 (턴 2) | {cell(a2)} |",
+        f"| 5 | 고객 (턴 3) | {cell(q3)} |",
+        "",
+    ]
+    lines += step_rows(steps, status) + tool_lines(tool_starts) + plan_lines(plan)
+    lines += ["", "## 일꾼이 남긴 답 (원문)", ""]
+    lines += [answers[-1]] if answers else ["(일꾼이 답을 남기지 않음)"]
+    lines += [
+        "",
+        "## 사람이 채울 칸",
+        "",
+        f"대본 턴 3 기대 답: {expected}",
+        "",
+        "| 확인 | 결과 |",
+        "|---|---|",
+        "| supervisor 가 class_progress 를 골랐는가 |  |",
+        "| 도구 시작 줄의 수업 이름 · 번호 |  |",
+        "| 답의 지난달 · 이번달 진도가 대본 턴 3 글과 같은가 |  |",
+    ]
+    # 앞 턴 줄은 그대로 두고 끝에 더한다
+    with OUT_PATH.open("a", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    print(f"표에 더함: {OUT_PATH}")
+
+
 if __name__ == "__main__":
-    main_turn_two() if sys.argv[1:] == ["2"] else main_turn_one()
+    if sys.argv[1:] == ["3"]:
+        main_turn_three()
+    else:
+        main_turn_two() if sys.argv[1:] == ["2"] else main_turn_one()
